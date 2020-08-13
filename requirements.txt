@@ -6,7 +6,6 @@ nltk==3.5
 numpy==1.19.1
 odfpy==1.4.1
 pandas==1.1.0
-pkg-resources==0.0.0
 pycodestyle==2.6.0
 python-dateutil==2.8.1
 pytz==2020.1
