@@ -5,7 +5,6 @@ import pandas as pandas
 import re
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
-
 INPUT_FILE_NAME = "tweets.csv"
 OUTPUT_FILE_NAME = "cleaned_tweets.csv"
 
