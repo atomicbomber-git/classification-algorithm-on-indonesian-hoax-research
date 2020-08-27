@@ -13,6 +13,20 @@ from sklearn.model_selection import KFold
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import StandardScaler
 
+
+true_data = np.array([1, 1, 1, 1, 0])
+pred_data = np.array([0, 0, 0, 0, 0])
+
+precision, recall, fscore, support = precision_recall_fscore_support(true_data, pred_data, average="binary")
+accuracy = accuracy_score(true_data, pred_data)
+
+print("PRECISION: {}".format(precision))
+print("RECALL: {}".format(recall))
+print("FSCORE: {}".format(fscore))
+print("ACCURACY: {}".format(accuracy))
+
+exit(0)
+
 N_ESTIMATORS = 10
 TEST_SIZE = 0.2
 N_ITERATIONS = 1000
@@ -36,11 +50,11 @@ def process_target_text(target_text: str) -> bool:
 # Process data
 tf_idf_converter = TfidfVectorizer(
     max_features=1500, min_df=5, max_df=0.7, stop_words=stopwords.words('indonesian'))
-data = np.array([row[0] for row in cleaned_tweets.values.tolist()])
+data = np.array([row[0] for row in cleaned_tweets.values.tolist()])[0:-1]
 data = tf_idf_converter.fit_transform(data).toarray()
 
 # Process target
-target = np.array([process_target_text(row[0]) for row in labels.values.tolist()])
+target = np.array([process_target_text(row[0]) for row in labels.values.tolist()])[0:-1]
 
 
 def perceptron(data_train, data_test, target_train, target_test):
@@ -53,7 +67,8 @@ def perceptron(data_train, data_test, target_train, target_test):
     perceptron = Perceptron(max_iter=N_ITERATIONS, eta0=LEARNING_RATE, random_state=0)
     perceptron.fit(data_train_standard, target_train)
     predict = perceptron.predict(data_test_standard)
-    return (*precision_recall_fscore_support(target_test, predict, average='micro'),
+
+    return (*precision_recall_fscore_support(target_test, predict, average='binary'),
             accuracy_score(target_test, predict))
 
 
@@ -61,16 +76,19 @@ def naive_bayes(data_train, data_test, target_train, target_test):
     multinomialNB = MultinomialNB()
     multinomialNB.fit(data_train, target_train)
     predict = multinomialNB.predict(data_test)
-    return (*precision_recall_fscore_support(target_test, predict, average='micro'), accuracy_score(target_test,
-                                                                                                       predict))
+    return (*precision_recall_fscore_support(target_test, predict, average='binary'), accuracy_score(target_test, predict))
 
 
 def support_vector_machine(data_train, data_test, target_train, target_test):
     support_vector_machine = svm.SVC()
     support_vector_machine.fit(data_train, target_train)
     predict = support_vector_machine.predict(data_test)
+
+    print(precision_recall_fscore_support(target_test, predict, average='binary'))
+
+
     return (
-        *precision_recall_fscore_support(target_test, predict, average='micro'),
+        *precision_recall_fscore_support(target_test, predict, average='binary'),
         accuracy_score(target_test, predict))
 
 
@@ -79,7 +97,7 @@ def decision_tree(data_train, data_test, target_train, target_test):
     decision_tree_classifier.fit(data_train, target_train)
     predict = decision_tree_classifier.predict(data_test)
     return (
-        *precision_recall_fscore_support(target_test, predict, average='micro'),
+        *precision_recall_fscore_support(target_test, predict, average='binary'),
         accuracy_score(target_test, predict))
 
 
@@ -87,40 +105,55 @@ def random_forest(data_train, data_test, target_train, target_test):
     classifier = RandomForestClassifier(n_estimators=N_ESTIMATORS)
     classifier.fit(data_train, target_train)
     predict = classifier.predict(data_test)
-    return (*precision_recall_fscore_support(target_test, predict, average='micro'),
+    return (*precision_recall_fscore_support(target_test, predict, average='binary'),
             accuracy_score(target_test, predict))
 
 
 algorithms = OrderedDict()
-algorithms['perceptron'] = {'method': perceptron, 'precision': [], 'recall': [], 'fscore': [], 'accuracy': []}
-algorithms['naive_bayes'] = {'method': naive_bayes, 'precision': [], 'recall': [], 'fscore': [], 'accuracy': []}
-algorithms['support_vector_machine'] = {'method': support_vector_machine, 'precision': [], 'recall': [], 'fscore': [],
-                                        'accuracy': []}
-algorithms['decision_tree'] = {'method': decision_tree, 'precision': [], 'recall': [], 'fscore': [], 'accuracy': []}
-algorithms['random_forest'] = {'method': random_forest, 'precision': [], 'recall': [], 'fscore': [], 'accuracy': []}
+algorithms['perceptron'] = {'method': perceptron, 'precision': [], 'recall': [], 'fscore': [], 'accuracy': [], 'support': []}
+algorithms['naive_bayes'] = {'method': naive_bayes, 'precision': [], 'recall': [], 'fscore': [], 'accuracy': [], 'support': []}
+algorithms['support_vector_machine'] = {'method': support_vector_machine, 'precision': [], 'recall': [], 'fscore': [], 'accuracy': [], 'support': []}
+algorithms['decision_tree'] = {'method': decision_tree, 'precision': [], 'recall': [], 'fscore': [], 'accuracy': [], 'support': []}
+algorithms['random_forest'] = {'method': random_forest, 'precision': [], 'recall': [], 'fscore': [], 'accuracy': [], 'support': []}
 
 kFolder = KFold(n_splits=5)
 
 for train_index, test_index in kFolder.split(data):
-    print("Fold: {}-{}".format(test_index[0], test_index[-1]))
+    print("Tweet ke {}-{}".format(test_index[0] + 1, test_index[-1] + 1))
 
     data_train, target_train = data[train_index], target[train_index]
     data_test, target_test = data[test_index], target[test_index]
 
+    print("Algoritma, Precision, Recall, F1-Score, Accuracy")
+
     for algorithm_name, content in algorithms.items():
-        precision, recall, fscore, support, accuracy = content['method'](data_train, data_test, target_train,
-                                                                         target_test)
+        precision, recall, fscore, support, accuracy = content['method'](data_train, data_test, target_train, target_test)
 
         content['precision'].append(precision)
         content['recall'].append(recall)
         content['fscore'].append(fscore)
         content['accuracy'].append(accuracy)
 
-        print("{} precision: {}, recall: {}, fscore: {}, accuracy: {}".format(
-            algorithm_name,
-            precision,
-            recall,
-            fscore,
-            accuracy
-        ))
+        print("{}: {}".format(algorithm_name, support))
+
+
+        # print("{}, {}, {}, {}, {}".format(
+        #     algorithm_name.title().replace('_', ' '),
+        #     precision,
+        #     recall,
+        #     fscore,
+        #     accuracy
+        # ))
     print("")
+
+# print("Rata-Rata")
+# print("Algoritma, Precision, Recall, F1-Score, Accuracy")
+# for algorithm_name, content in algorithms.items():
+#     print("{}, {}, {}, {}, {}".format(
+#         algorithm_name.title().replace('_', ' '),
+#         mean(content['precision']),
+#         mean(content['recall']),
+#         mean(content['fscore']),
+#         mean(content['accuracy'])
+#     ))
+# print("")
