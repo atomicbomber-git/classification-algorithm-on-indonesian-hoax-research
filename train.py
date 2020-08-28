@@ -13,20 +13,6 @@ from sklearn.model_selection import KFold
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import StandardScaler
 
-
-true_data = np.array([1, 1, 1, 1, 0])
-pred_data = np.array([0, 0, 0, 0, 0])
-
-precision, recall, fscore, support = precision_recall_fscore_support(true_data, pred_data, average="binary")
-accuracy = accuracy_score(true_data, pred_data)
-
-print("PRECISION: {}".format(precision))
-print("RECALL: {}".format(recall))
-print("FSCORE: {}".format(fscore))
-print("ACCURACY: {}".format(accuracy))
-
-exit(0)
-
 N_ESTIMATORS = 10
 TEST_SIZE = 0.2
 N_ITERATIONS = 1000
@@ -47,13 +33,12 @@ def process_target_text(target_text: str) -> bool:
     return str(target_text).strip().lower()[0] == 'h'
 
 
-# Process data
+# TF-IDF Weighting
 tf_idf_converter = TfidfVectorizer(
     max_features=1500, min_df=5, max_df=0.7, stop_words=stopwords.words('indonesian'))
 data = np.array([row[0] for row in cleaned_tweets.values.tolist()])[0:-1]
 data = tf_idf_converter.fit_transform(data).toarray()
 
-# Process target
 target = np.array([process_target_text(row[0]) for row in labels.values.tolist()])[0:-1]
 
 
